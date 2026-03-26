@@ -1,27 +1,28 @@
+-- Clean and standardize NYC Open Restaurant Applications (Historic)
 -- One row per restaurant application
 
 WITH source AS (
-   SELECT * FROM `nousin-rahman-cis9440`.`nyc_hw3_raw_data`.`source_nyc_open_restaurant_apps`
+   -- Using dbt source function instead of hardcoded path for better project management
+   SELECT * FROM {{ source('raw', 'source_nyc_open_restaurant_apps') }}
 ),
 
 cleaned AS (
    SELECT
+       -- 1. EXCEPT list must match RAW names exactly to avoid Error 400
        * EXCEPT (
            objectid,
            restaurant_name,
            legal_business_name,
            borough,
-           zip_code,
+           zip,                 -- Raw name is 'zip'
+           application_date,    -- Raw name is 'application_date'
+           application_status,
+           application_type,
            seating_interest,
-           sidewalk_dimensions,
-           roadway_dimensions,
            approved_for_sidewalk_seating,
            approved_for_roadway_seating,
            sla_serial_number,
-           sla_license_type,
-           application_status,
-           application_type,
-           time_of_submission 
+           sla_license_type
        ),
 
        -- Identifier
@@ -31,7 +32,7 @@ cleaned AS (
        TRIM(CAST(restaurant_name AS STRING)) AS restaurant_name,
        TRIM(CAST(legal_business_name AS STRING)) AS legal_business_name,
 
-       -- Borough
+       -- Borough Standardization
        CASE
            WHEN UPPER(TRIM(borough)) IN ('MANHATTAN', 'NEW YORK COUNTY') THEN 'Manhattan'
            WHEN UPPER(TRIM(borough)) IN ('BRONX', 'THE BRONX') THEN 'Bronx'
@@ -41,9 +42,9 @@ cleaned AS (
            ELSE 'UNKNOWN'
        END AS borough,
 
-       -- Zip Code
+       -- Zip Code Cleaning (using raw 'zip' field)
        CASE
-           WHEN LENGTH(CAST(zip_code AS STRING)) = 5 THEN CAST(zip_code AS STRING)
+           WHEN LENGTH(CAST(zip AS STRING)) = 5 THEN CAST(zip AS STRING)
            ELSE NULL
        END AS zip_code,
 
@@ -51,31 +52,33 @@ cleaned AS (
        UPPER(TRIM(CAST(application_status AS STRING))) AS application_status,
        UPPER(TRIM(CAST(application_type AS STRING))) AS application_type,
 
-       -- Seating
+       -- Seating Info
        UPPER(TRIM(CAST(seating_interest AS STRING))) AS seating_interest,
        CAST(approved_for_sidewalk_seating AS STRING) AS sidewalk_seating_flag,
        CAST(approved_for_roadway_seating AS STRING) AS roadway_seating_flag,
 
-       -- SLA
+       -- SLA Info
        CAST(sla_serial_number AS STRING) AS sla_serial_number,
        CAST(sla_license_type AS STRING) AS sla_license_type,
 
- 
-       CAST(time_of_submission AS TIMESTAMP) AS submission_timestamp,
+       -- Date Transformation (using raw 'application_date' field)
+       CAST(application_date AS TIMESTAMP) AS submission_timestamp,
 
+       -- Metadata
        CURRENT_TIMESTAMP() AS _stg_loaded_at
 
    FROM source
 
+   -- 2. Ensure filters use the correct raw column names
    WHERE objectid IS NOT NULL
-     AND time_of_submission IS NOT NULL 
+     AND application_date IS NOT NULL 
      AND borough IS NOT NULL
 
+   -- 3. Deduplicate (latest application per ID) using raw names
    QUALIFY ROW_NUMBER() OVER (
        PARTITION BY objectid
-       ORDER BY time_of_submission DESC   
-) = 1
+       ORDER BY application_date DESC   
+   ) = 1
 )
 
 SELECT * FROM cleaned
-
