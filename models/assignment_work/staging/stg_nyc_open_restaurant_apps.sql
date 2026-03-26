@@ -2,23 +2,20 @@
 -- One row per restaurant application
 
 WITH source AS (
-   -- Using dbt source function instead of hardcoded path for better project management
    SELECT * FROM {{ source('raw', 'source_nyc_open_restaurant_apps') }}
 ),
 
 cleaned AS (
    SELECT
-       -- 1. EXCEPT list must match RAW names exactly to avoid Error 400
+       -- 1. EXCEPT list now matches your screenshot names exactly
        * EXCEPT (
            objectid,
            restaurant_name,
            legal_business_name,
            borough,
-           zip,                 -- Raw name is 'zip'
-           application_date,    -- Raw name is 'application_date'
-           application_status,
-           application_type,
-           seating_interest,
+           zip,
+           time_of_submission,           -- Fix: This is the name in your screenshot
+           seating_interest_sidewalk,    -- Fix: Matches screenshot
            approved_for_sidewalk_seating,
            approved_for_roadway_seating,
            sla_serial_number,
@@ -42,18 +39,14 @@ cleaned AS (
            ELSE 'UNKNOWN'
        END AS borough,
 
-       -- Zip Code Cleaning (using raw 'zip' field)
+       -- Zip Code Cleaning (using raw 'zip' field from your screenshot)
        CASE
            WHEN LENGTH(CAST(zip AS STRING)) = 5 THEN CAST(zip AS STRING)
            ELSE NULL
        END AS zip_code,
 
-       -- Application Details
-       UPPER(TRIM(CAST(application_status AS STRING))) AS application_status,
-       UPPER(TRIM(CAST(application_type AS STRING))) AS application_type,
-
-       -- Seating Info
-       UPPER(TRIM(CAST(seating_interest AS STRING))) AS seating_interest,
+       -- Seating Info (using the specific sidewalk field from your screenshot)
+       UPPER(TRIM(CAST(seating_interest_sidewalk AS STRING))) AS seating_interest,
        CAST(approved_for_sidewalk_seating AS STRING) AS sidewalk_seating_flag,
        CAST(approved_for_roadway_seating AS STRING) AS roadway_seating_flag,
 
@@ -61,23 +54,23 @@ cleaned AS (
        CAST(sla_serial_number AS STRING) AS sla_serial_number,
        CAST(sla_license_type AS STRING) AS sla_license_type,
 
-       -- Date Transformation (using raw 'application_date' field)
-       CAST(application_date AS TIMESTAMP) AS submission_timestamp,
+       -- Date Transformation (using raw 'time_of_submission' field from your screenshot)
+       CAST(time_of_submission AS TIMESTAMP) AS submission_timestamp,
 
        -- Metadata
        CURRENT_TIMESTAMP() AS _stg_loaded_at
 
    FROM source
 
-   -- 2. Ensure filters use the correct raw column names
+   -- 2. Ensure filters use the correct raw column names from BigQuery
    WHERE objectid IS NOT NULL
-     AND application_date IS NOT NULL 
+     AND time_of_submission IS NOT NULL 
      AND borough IS NOT NULL
 
-   -- 3. Deduplicate (latest application per ID) using raw names
+   -- 3. Deduplicate using the correct timestamp field
    QUALIFY ROW_NUMBER() OVER (
        PARTITION BY objectid
-       ORDER BY application_date DESC   
+       ORDER BY time_of_submission DESC   
    ) = 1
 )
 
