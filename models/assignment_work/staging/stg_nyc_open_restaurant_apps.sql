@@ -83,7 +83,7 @@ cleaned AS (
    QUALIFY ROW_NUMBER() OVER (
        PARTITION BY objectid
        ORDER BY submission_timestamp DESC
-   ) = 1
+) = 1
 )
 
 
