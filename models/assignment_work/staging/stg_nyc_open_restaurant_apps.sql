@@ -1,8 +1,7 @@
--- Clean and standardize NYC Open Restaurant Applications data
 -- One row per restaurant application
 
 WITH source AS (
-   SELECT * FROM {{ source('raw', 'source_nyc_open_restaurant_apps') }}
+   SELECT * FROM `nousin-rahman-cis9440`.`nyc_hw3_raw_data`.`source_nyc_open_restaurant_apps`
 ),
 
 cleaned AS (
@@ -80,4 +79,4 @@ cleaned AS (
 
 SELECT * FROM cleaned
 
-
+;
