@@ -33,11 +33,7 @@ cleaned AS (
        TRIM(CAST(restaurant_name AS STRING)) AS restaurant_name,
        TRIM(CAST(legal_business_name AS STRING)) AS legal_business_name,
 
-<<<<<<< HEAD
-      
-=======
 
->>>>>>> 971c4629b286b6473f9c69745ae471542e197b74
        CASE
            WHEN UPPER(TRIM(borough)) IN ('MANHATTAN', 'NEW YORK COUNTY') THEN 'Manhattan'
            WHEN UPPER(TRIM(borough)) IN ('BRONX', 'THE BRONX') THEN 'Bronx'
