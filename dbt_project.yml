@@ -38,3 +38,22 @@ models:
 
        dot_311:
          +materialized: table
+
+   project_work:
+
+      staging:
+        +materialized: table
+        +schema: group9_staging 
+
+      marts:
+        +materialized: table
+        +schema: group9_marts 
+        
+        shared:
+          +materialized: table
+
+        motor_vehicle_collisions:
+          +materialized: table
+
+        dot_311:
+          +materialized: table
