@@ -13,7 +13,7 @@ final as (
         c.collision_id as collision_sk,
 
         dt.time_sk,
-        dl.location_sk,
+        null as location_sk,
         dcd.collision_detail_sk,
         dpi.person_impact_sk,
 
@@ -21,17 +21,12 @@ final as (
         c.number_of_persons_killed as persons_killed,
 
         c.on_street_name,
-
         c.contributing_factor_vehicle_1 as contributing_factor
 
     from collisions c
 
     left join {{ ref('dim_time') }} dt
         on date(c.crash_date) = dt.date
-
-    left join {{ ref('dim_location') }} dl
-        on coalesce(c.borough, '') = coalesce(dl.borough, '')
-        and coalesce(c.zip_code, '') = coalesce(dl.zip_code, '')
 
     left join {{ ref('dim_collision_detail') }} dcd
         on coalesce(c.contributing_factor_vehicle_1, '') = coalesce(dcd.contributing_factor_vehicle_1, '')
